@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dnevnik pritiska</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6f5e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pritisak">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c2b28;
+    --paper:#f6f4ee;
+    --paper-raised:#ffffff;
+    --line:#dcd6c8;
+    --muted:#6f7a72;
+    --accent:#2f6f5e;
+    --accent-soft:#e2ede8;
+    --warn:#a8672a;
+    --warn-soft:#f3e6d5;
+    --crit:#a3352f;
+    --crit-soft:#f5dfdc;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9ede9;
+      --paper:#141b19;
+      --paper-raised:#1b2422;
+      --line:#313c38;
+      --muted:#93a19a;
+      --accent:#5fae97;
+      --accent-soft:#1f2f2a;
+      --warn:#d99456;
+      --warn-soft:#332619;
+      --crit:#e2726b;
+      --crit-soft:#3a201e;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ede9;
+    --paper:#141b19;
+    --paper-raised:#1b2422;
+    --line:#313c38;
+    --muted:#93a19a;
+    --accent:#5fae97;
+    --accent-soft:#1f2f2a;
+    --warn:#d99456;
+    --warn-soft:#332619;
+    --crit:#e2726b;
+    --crit-soft:#3a201e;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", system-ui, sans-serif;
+    padding-inline:16px;
+    padding-block:28px 40px;
+  }
+  .wrap{
+    max-width:760px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+  h1{
+    font-family:"Fraunces", Georgia, serif;
+    font-weight:600;
+    font-size:clamp(1.6rem, 4vw, 2.1rem);
+    margin:0;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:0.92rem;
+    margin-top:6px;
+    max-width:60ch;
+  }
+  header{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+  }
+
+  .card h2{
+    font-family:"Fraunces", Georgia, serif;
+    font-size:1.05rem;
+    font-weight:600;
+    margin:0 0 14px;
+  }
+
+  form{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    flex:1 1 100px;
+    min-width:100px;
+  }
+  .field.wide{ flex:1 1 220px; }
+  label{
+    font-size:0.78rem;
+    color:var(--muted);
+    letter-spacing:0.02em;
+  }
+  input, select, textarea{
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    font-size:0.98rem;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  textarea{
+    font-family:"IBM Plex Sans", sans-serif;
+    resize:vertical;
+    min-height:44px;
+  }
+
+  .segbtns{
+    display:flex;
+    gap:8px;
+  }
+  .segbtn{
+    flex:1;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--paper);
+    color:var(--muted);
+    font-family:"IBM Plex Sans", sans-serif;
+    font-size:0.9rem;
+    cursor:pointer;
+  }
+  .segbtn[aria-pressed="true"]{
+    background:var(--accent-soft);
+    color:var(--accent);
+    border-color:var(--accent);
+    font-weight:600;
+  }
+
+  button.primary{
+    align-self:flex-start;
+    background:var(--accent);
+    color:var(--paper-raised);
+    border:none;
+    padding:11px 20px;
+    border-radius:9px;
+    font-size:0.95rem;
+    font-weight:600;
+    cursor:pointer;
+    font-family:"IBM Plex Sans", sans-serif;
+  }
+  button.primary:active{ transform:translateY(1px); }
+
+  .banner{
+    display:none;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:0.88rem;
+    line-height:1.45;
+    border:1px solid var(--crit);
+    background:var(--crit-soft);
+    color:var(--crit);
+  }
+  .banner.show{ display:block; }
+  .banner b{ display:block; margin-bottom:2px; font-size:0.92rem; }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  .stat{
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px;
+    text-align:center;
+  }
+  .stat .num{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:1.35rem;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .lbl{
+    font-size:0.72rem;
+    color:var(--muted);
+    margin-top:2px;
+    letter-spacing:0.02em;
+  }
+
+  .chartwrap{ overflow-x:auto; }
+  svg text{ font-family:"IBM Plex Mono", monospace; }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.88rem;
+  }
+  thead th{
+    text-align:left;
+    font-size:0.72rem;
+    color:var(--muted);
+    font-weight:500;
+    letter-spacing:0.03em;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  tbody td{
+    padding:9px 6px;
+    border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono", monospace;
+    font-variant-numeric:tabular-nums;
+    vertical-align:top;
+  }
+  tbody tr:last-child td{ border-bottom:none; }
+  .rownote{
+    font-family:"IBM Plex Sans", sans-serif;
+    color:var(--muted);
+    font-size:0.82rem;
+  }
+  .tablewrap{ overflow-x:auto; }
+
+  .badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:100px;
+    font-size:0.72rem;
+    font-family:"IBM Plex Sans", sans-serif;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .b-normal{ background:var(--accent-soft); color:var(--accent); }
+  .b-elevated{ background:var(--warn-soft); color:var(--warn); }
+  .b-stage1{ background:var(--warn-soft); color:var(--warn); }
+  .b-stage2{ background:var(--crit-soft); color:var(--crit); }
+  .b-crisis{ background:var(--crit); color:var(--paper-raised); }
+
+  .empty{
+    color:var(--muted);
+    font-size:0.9rem;
+    padding:8px 0;
+  }
+
+  .delbtn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    cursor:pointer;
+    font-size:0.8rem;
+    padding:2px 4px;
+  }
+  .delbtn:hover{ color:var(--crit); }
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 16px;
+    font-size:0.76rem;
+    color:var(--muted);
+    margin-top:10px;
+  }
+  .legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  footer{
+    color:var(--muted);
+    font-size:0.78rem;
+    text-align:center;
+    padding-top:6px;
+  }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Dnevnik pritiska</h1>
+    <div class="sub">Merenje ujutru i uveče. Podaci se čuvaju samo u ovom pregledaču, na ovom uređaju.</div>
+  </header>
+
+  <div class="banner" id="crisisBanner">
+    <b>Hipertenzivna kriza — vrednosti iznad 180/120</b>
+    Ako postoji i trnjenje, slabost, otežan govor, bol u grudima ili krivljenje lica, odmah pozovite Hitnu pomoć na 194 ili 112.
+  </div>
+
+  <div class="card">
+    <h2>Novo merenje</h2>
+    <form id="entryForm">
+      <div class="row">
+        <div class="field wide">
+          <label for="dateInput">Datum</label>
+          <input type="date" id="dateInput" required>
+        </div>
+        <div class="field wide">
+          <label>Doba dana</label>
+          <div class="segbtns" id="periodToggle">
+            <button type="button" class="segbtn" data-period="jutro" aria-pressed="true">Jutro</button>
+            <button type="button" class="segbtn" data-period="veče" aria-pressed="false">Veče</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="sysInput">Gornji (sistolni)</label>
+          <input type="number" id="sysInput" inputmode="numeric" min="50" max="300" placeholder="120" required>
+        </div>
+        <div class="field">
+          <label for="diaInput">Donji (dijastolni)</label>
+          <input type="number" id="diaInput" inputmode="numeric" min="30" max="200" placeholder="80" required>
+        </div>
+        <div class="field">
+          <label for="pulseInput">Puls</label>
+          <input type="number" id="pulseInput" inputmode="numeric" min="30" max="220" placeholder="72">
+        </div>
+      </div>
+      <div class="field">
+        <label for="noteInput">Napomena (opciono)</label>
+        <textarea id="noteInput" placeholder="npr. trnjenje leve ruke, glavobolja, posle terapije..."></textarea>
+      </div>
+      <button type="submit" class="primary">Sačuvaj merenje</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Pregled</h2>
+    <div class="stats">
+      <div class="stat">
+        <div class="num" id="statLast">—</div>
+        <div class="lbl">poslednje merenje</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statAvg7">—</div>
+        <div class="lbl">prosek, 7 dana</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statCount">0</div>
+        <div class="lbl">ukupno unosa</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Trend</h2>
+    <div class="chartwrap" id="chartHolder"></div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--accent)"></span> gornji (sistolni)</span>
+      <span><span class="dot" style="background:var(--muted)"></span> donji (dijastolni)</span>
+      <span><span class="dot" style="background:var(--crit)"></span> granica krize, 180 / 120</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Istorija merenja</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Datum</th><th>Doba</th><th>Pritisak</th><th>Puls</th><th>Kategorija</th><th>Napomena</th><th></th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg" hidden>Još nema unetih merenja.</div>
+    </div>
+  </div>
+
+  <footer>Ovo nije medicinski savet. Za odluke o terapiji i doziranju obratite se kardiologu.</footer>
+</div>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("/sw.js").catch(function(){});
+  });
+}
+
+(function(){
+  "use strict";
+
+  var STORAGE_KEY = "bp_tracker_entries_v1";
+  var entries = [];
+  var period = "jutro";
+
+  function loadEntries(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      entries = raw ? JSON.parse(raw) : [];
+    }catch(e){
+      entries = [];
+    }
+  }
+
+  function saveEntries(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }catch(e){ /* storage unavailable, continue without persistence */ }
+  }
+
+  function categorize(sys, dia){
+    if(sys >= 180 || dia >= 120) return {key:"crisis", label:"Kriza"};
+    if(sys >= 140 || dia >= 90) return {key:"stage2", label:"Stadijum 2"};
+    if(sys >= 130 || dia >= 80) return {key:"stage1", label:"Stadijum 1"};
+    if(sys >= 120) return {key:"elevated", label:"Povišen"};
+    return {key:"normal", label:"Normalan"};
+  }
+
+  function fmtDate(iso){
+    var d = new Date(iso + "T00:00:00");
+    var days = ["ned","pon","uto","sre","čet","pet","sub"];
+    var months = ["jan","feb","mar","apr","maj","jun","jul","avg","sep","okt","nov","dec"];
+    return days[d.getDay()] + " " + d.getDate() + " " + months[d.getMonth()];
+  }
+
+  function render(){
+    var sorted = entries.slice().sort(function(a,b){
+      return (b.date + b.period).localeCompare(a.date + a.period);
+    });
+
+    // history table
+    var body = document.getElementById("historyBody");
+    var emptyMsg = document.getElementById("emptyMsg");
+    body.innerHTML = "";
+    if(sorted.length === 0){
+      emptyMsg.hidden = false;
+    } else {
+      emptyMsg.hidden = true;
+      sorted.forEach(function(e){
+        var cat = categorize(e.sys, e.dia);
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + fmtDate(e.date) + "</td>" +
+          "<td>" + (e.period === "jutro" ? "Jutro" : "Veče") + "</td>" +
+          "<td>" + e.sys + "/" + e.dia + "</td>" +
+          "<td>" + (e.pulse ? e.pulse : "—") + "</td>" +
+          "<td><span class=\"badge b-" + cat.key + "\">" + cat.label + "</span></td>" +
+          "<td class=\"rownote\">" + (e.note ? escapeHtml(e.note) : "") + "</td>" +
+          "<td><button class=\"delbtn\" data-id=\"" + e.id + "\" aria-label=\"Obriši\">✕</button></td>";
+        body.appendChild(tr);
+      });
+    }
+
+    // banner
+    var banner = document.getElementById("crisisBanner");
+    var mostRecent = sorted[0];
+    banner.classList.toggle("show", !!mostRecent && categorize(mostRecent.sys, mostRecent.dia).key === "crisis");
+
+    // stats
+    document.getElementById("statCount").textContent = entries.length;
+    if(mostRecent){
+      document.getElementById("statLast").textContent = mostRecent.sys + "/" + mostRecent.dia;
+    } else {
+      document.getElementById("statLast").textContent = "—";
+    }
+    var weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    var recentWindow = entries.filter(function(e){
+      return new Date(e.date + "T00:00:00") >= weekAgo;
+    });
+    if(recentWindow.length){
+      var avgSys = Math.round(recentWindow.reduce(function(s,e){return s+e.sys;},0) / recentWindow.length);
+      var avgDia = Math.round(recentWindow.reduce(function(s,e){return s+e.dia;},0) / recentWindow.length);
+      document.getElementById("statAvg7").textContent = avgSys + "/" + avgDia;
+    } else {
+      document.getElementById("statAvg7").textContent = "—";
+    }
+
+    renderChart(sorted.slice(0, 14).reverse());
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderChart(points){
+    var holder = document.getElementById("chartHolder");
+    if(points.length < 2){
+      holder.innerHTML = "<div class=\"empty\">Potrebno je bar dva merenja za prikaz trenda.</div>";
+      return;
+    }
+    var w = Math.max(420, points.length * 56);
+    var h = 220;
+    var padL = 34, padR = 12, padT = 16, padB = 30;
+    var innerW = w - padL - padR;
+    var innerH = h - padT - padB;
+
+    var maxVal = 190, minVal = 50;
+    points.forEach(function(p){
+      maxVal = Math.max(maxVal, p.sys + 10);
+      minVal = Math.min(minVal, p.dia - 10);
+    });
+
+    function yFor(v){
+      return padT + innerH * (1 - (v - minVal) / (maxVal - minVal));
+    }
+    function xFor(i){
+      return padL + (points.length === 1 ? innerW/2 : innerW * (i/(points.length - 1)));
+    }
+
+    function pathFor(key){
+      return points.map(function(p, i){
+        return (i === 0 ? "M" : "L") + xFor(i).toFixed(1) + "," + yFor(p[key]).toFixed(1);
+      }).join(" ");
+    }
+
+    var gridLines = [50,80,120,140,160,180].filter(function(v){ return v >= minVal && v <= maxVal; });
+
+    var svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '" role="img" aria-label="Grafik pritiska">';
+
+    gridLines.forEach(function(v){
+      var y = yFor(v);
+      svg += '<line x1="' + padL + '" y1="' + y.toFixed(1) + '" x2="' + (w-padR) + '" y2="' + y.toFixed(1) + '" stroke="var(--line)" stroke-width="1" />';
+      svg += '<text x="6" y="' + (y+4).toFixed(1) + '" font-size="10" fill="var(--muted)">' + v + '</text>';
+    });
+
+    // crisis threshold line
+    var crisisY = yFor(180);
+    svg += '<line x1="' + padL + '" y1="' + crisisY.toFixed(1) + '" x2="' + (w-padR) + '" y2="' + crisisY.toFixed(1) + '" stroke="var(--crit)" stroke-width="1" stroke-dasharray="4 3" />';
+
+    svg += '<path d="' + pathFor('dia') + '" fill="none" stroke="var(--muted)" stroke-width="2" />';
+    svg += '<path d="' + pathFor('sys') + '" fill="none" stroke="var(--accent)" stroke-width="2.5" />';
+
+    points.forEach(function(p, i){
+      var x = xFor(i);
+      var catSys = categorize(p.sys, p.dia);
+      var color = catSys.key === "crisis" ? "var(--crit)" : "var(--accent)";
+      svg += '<circle cx="' + x.toFixed(1) + '" cy="' + yFor(p.sys).toFixed(1) + '" r="3.5" fill="' + color + '" />';
+      svg += '<circle cx="' + x.toFixed(1) + '" cy="' + yFor(p.dia).toFixed(1) + '" r="3" fill="var(--muted)" />';
+      if(i % Math.ceil(points.length/8 || 1) === 0 || i === points.length-1){
+        svg += '<text x="' + x.toFixed(1) + '" y="' + (h-8) + '" font-size="9" fill="var(--muted)" text-anchor="middle">' + p.date.slice(5) + '</text>';
+      }
+    });
+
+    svg += '</svg>';
+    holder.innerHTML = svg;
+  }
+
+  // period toggle
+  document.getElementById("periodToggle").addEventListener("click", function(ev){
+    var btn = ev.target.closest(".segbtn");
+    if(!btn) return;
+    period = btn.dataset.period;
+    document.querySelectorAll("#periodToggle .segbtn").forEach(function(b){
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+  });
+
+  // default date to today
+  var today = new Date();
+  var isoToday = today.toISOString().slice(0,10);
+  document.getElementById("dateInput").value = isoToday;
+
+  document.getElementById("entryForm").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var date = document.getElementById("dateInput").value || isoToday;
+    var sys = parseInt(document.getElementById("sysInput").value, 10);
+    var dia = parseInt(document.getElementById("diaInput").value, 10);
+    var pulse = parseInt(document.getElementById("pulseInput").value, 10);
+    var note = document.getElementById("noteInput").value.trim();
+
+    if(!sys || !dia){ return; }
+
+    entries.push({
+      id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
+      date: date,
+      period: period,
+      sys: sys,
+      dia: dia,
+      pulse: isNaN(pulse) ? null : pulse,
+      note: note || null
+    });
+
+    saveEntries();
+    render();
+
+    document.getElementById("sysInput").value = "";
+    document.getElementById("diaInput").value = "";
+    document.getElementById("pulseInput").value = "";
+    document.getElementById("noteInput").value = "";
+    document.getElementById("sysInput").focus();
+  });
+
+  document.getElementById("historyBody").addEventListener("click", function(ev){
+    var btn = ev.target.closest(".delbtn");
+    if(!btn) return;
+    var id = btn.dataset.id;
+    entries = entries.filter(function(e){ return e.id !== id; });
+    saveEntries();
+    render();
+  });
+
+  loadEntries();
+  render();
+})();
+</script>
+
+</body>
+</html>
