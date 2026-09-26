@@ -1,4 +1,9 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
+});
 
 const KEY = "bp_entries";
 
@@ -15,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
-      const entries = (await kv.get(KEY)) || [];
+      const entries = (await redis.get(KEY)) || [];
       return res.status(200).json({ entries });
     }
 
@@ -44,9 +49,9 @@ export default async function handler(req, res) {
         createdAt: new Date().toISOString()
       };
 
-      const entries = (await kv.get(KEY)) || [];
+      const entries = (await redis.get(KEY)) || [];
       entries.push(entry);
-      await kv.set(KEY, entries);
+      await redis.set(KEY, entries);
 
       return res.status(200).json({ entries, added: entry });
     }
@@ -55,9 +60,9 @@ export default async function handler(req, res) {
       const id = (req.query && req.query.id) || null;
       if (!id) return res.status(400).json({ error: "id is required" });
 
-      const entries = (await kv.get(KEY)) || [];
+      const entries = (await redis.get(KEY)) || [];
       const next = entries.filter((e) => e.id !== id);
-      await kv.set(KEY, next);
+      await redis.set(KEY, next);
 
       return res.status(200).json({ entries: next });
     }
