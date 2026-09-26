@@ -91,6 +91,14 @@
     margin-top:6px;
     max-width:60ch;
   }
+  #syncStatus{
+    display:inline-block;
+    font-size:0.78rem;
+  }
+  #syncStatus[data-state="synced"]{ color:var(--accent); }
+  #syncStatus[data-state="syncing"]{ color:var(--muted); }
+  #syncStatus[data-state="offline"],
+  #syncStatus[data-state="error"]{ color:var(--warn); }
   header{
     display:flex;
     flex-direction:column;
@@ -315,7 +323,7 @@
 <div class="wrap">
   <header>
     <h1>Dnevnik pritiska</h1>
-    <div class="sub">Merenje ujutru i uveče. Podaci se čuvaju samo u ovom pregledaču, na ovom uređaju.</div>
+    <div class="sub">Merenje ujutru i uveče. Isti podaci na svim uređajima. <span id="syncStatus" data-state="syncing">Sinhronizacija...</span></div>
   </header>
 
   <div class="banner" id="crisisBanner">
@@ -419,19 +427,49 @@ if ("serviceWorker" in navigator) {
   var entries = [];
   var period = "jutro";
 
-  function loadEntries(){
+  function loadLocalCache(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
-      entries = raw ? JSON.parse(raw) : [];
+      return raw ? JSON.parse(raw) : [];
     }catch(e){
-      entries = [];
+      return [];
     }
   }
 
-  function saveEntries(){
+  function saveLocalCache(){
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     }catch(e){ /* storage unavailable, continue without persistence */ }
+  }
+
+  function setSyncStatus(state){
+    var el = document.getElementById("syncStatus");
+    if(!el) return;
+    var map = {
+      synced: "Sinhronizovano",
+      syncing: "Sinhronizacija...",
+      offline: "Offline, prikazana poslednja sačuvana verzija",
+      error: "Greška pri sinhronizaciji, koristi se lokalna kopija"
+    };
+    el.textContent = map[state] || "";
+    el.dataset.state = state;
+  }
+
+  function fetchServerEntries(){
+    setSyncStatus("syncing");
+    return fetch("/api/entries", { cache: "no-store" })
+      .then(function(r){ if(!r.ok) throw new Error("bad response"); return r.json(); })
+      .then(function(data){
+        entries = Array.isArray(data.entries) ? data.entries : [];
+        saveLocalCache();
+        setSyncStatus("synced");
+        render();
+      })
+      .catch(function(){
+        entries = loadLocalCache();
+        setSyncStatus("offline");
+        render();
+      });
   }
 
   function categorize(sys, dia){
@@ -594,23 +632,43 @@ if ("serviceWorker" in navigator) {
     var date = document.getElementById("dateInput").value || isoToday;
     var sys = parseInt(document.getElementById("sysInput").value, 10);
     var dia = parseInt(document.getElementById("diaInput").value, 10);
-    var pulse = parseInt(document.getElementById("pulseInput").value, 10);
+    var pulseRaw = document.getElementById("pulseInput").value;
+    var pulse = pulseRaw ? parseInt(pulseRaw, 10) : null;
     var note = document.getElementById("noteInput").value.trim();
 
     if(!sys || !dia){ return; }
 
-    entries.push({
-      id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
-      date: date,
-      period: period,
-      sys: sys,
-      dia: dia,
-      pulse: isNaN(pulse) ? null : pulse,
-      note: note || null
-    });
+    var submitBtn = ev.target.querySelector("button[type=submit]");
+    if(submitBtn) submitBtn.disabled = true;
+    setSyncStatus("syncing");
 
-    saveEntries();
-    render();
+    fetch("/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: date, period: period, sys: sys, dia: dia, pulse: pulse, note: note || null })
+    })
+      .then(function(r){ if(!r.ok) throw new Error("bad response"); return r.json(); })
+      .then(function(data){
+        entries = Array.isArray(data.entries) ? data.entries : entries;
+        saveLocalCache();
+        setSyncStatus("synced");
+        render();
+      })
+      .catch(function(){
+        // offline fallback: keep it locally, it will not be synced automatically
+        entries.push({
+          id: Date.now() + "_" + Math.random().toString(36).slice(2,7),
+          date: date, period: period, sys: sys, dia: dia,
+          pulse: (pulse && !isNaN(pulse)) ? pulse : null,
+          note: note || null
+        });
+        saveLocalCache();
+        setSyncStatus("error");
+        render();
+      })
+      .then(function(){
+        if(submitBtn) submitBtn.disabled = false;
+      });
 
     document.getElementById("sysInput").value = "";
     document.getElementById("diaInput").value = "";
@@ -623,13 +681,24 @@ if ("serviceWorker" in navigator) {
     var btn = ev.target.closest(".delbtn");
     if(!btn) return;
     var id = btn.dataset.id;
-    entries = entries.filter(function(e){ return e.id !== id; });
-    saveEntries();
-    render();
+    setSyncStatus("syncing");
+    fetch("/api/entries?id=" + encodeURIComponent(id), { method: "DELETE" })
+      .then(function(r){ if(!r.ok) throw new Error("bad response"); return r.json(); })
+      .then(function(data){
+        entries = Array.isArray(data.entries) ? data.entries : entries;
+        saveLocalCache();
+        setSyncStatus("synced");
+        render();
+      })
+      .catch(function(){
+        entries = entries.filter(function(e){ return e.id !== id; });
+        saveLocalCache();
+        setSyncStatus("error");
+        render();
+      });
   });
 
-  loadEntries();
-  render();
+  fetchServerEntries();
 })();
 </script>
 

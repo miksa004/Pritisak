@@ -1,4 +1,4 @@
-const CACHE_NAME = "pritisak-v1";
+const CACHE_NAME = "pritisak-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -30,8 +30,10 @@ self.addEventListener("activate", function(event){
 
 // Cache-first for the app shell, network-first fallback for everything else
 // (e.g. Google Fonts), so the app still opens with no connection.
+// /api/* always goes straight to the network: it's live data, never cached.
 self.addEventListener("fetch", function(event){
   if(event.request.method !== "GET") return;
+  if(new URL(event.request.url).pathname.startsWith("/api/")) return;
 
   event.respondWith(
     caches.match(event.request).then(function(cached){
